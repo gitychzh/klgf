@@ -1,1 +1,62 @@
 
+name: Deploy to GitHub Pages
+
+# 触发条件：你可以改成 push 到 master、main 或特定目录/标签
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read        # 读取仓库内容
+  pages: write          # 发布到 GitHub Pages 所需的权限
+  id-token: write       # 如果你在 workflow 中需要做身份验证（可保留）
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    outputs:
+      artifact: ${{ steps.upload-artifact.outputs.artifact_id }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ---------- 如果你有构建步骤（例如 npm / hugo / jekyll / etc），放在这里 ----------
+      # 下面演示一个典型的 Node.js build（没有就删除此块并确保输出目录存在）
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+
+      - name: Build (example)
+        run: |
+          # 假设构建产物会输出到 ./public
+          if [ -f package.json ]; then npm run build; fi
+
+      # -------------------------------------------------------------------------------
+
+      - name: Package and upload Pages artifact
+        id: upload-artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 把这里换成你的静态站点输出目录
+          path: public/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
