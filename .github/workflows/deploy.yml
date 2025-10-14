@@ -1,0 +1,44 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master  # 当 master 分支有提交时触发
+  workflow_dispatch:  # 允许手动触发（可选）
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 保留完整历史
+
+      # 如果你的博客用 Node.js 构建（例如 Hexo, VuePress, Astro 等）
+      # 如果不是，可以替换为你的构建命令或删除这两步
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies and build
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+            npm run build
+          else
+            echo "No package.json, skipping build step."
+          fi
+
+      # 如果你的构建产物不在 public/ 下，请改为你的输出目录
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          # 可选：保留自定义域名 CNAME
+          keep_files: false
+          force_orphan: true
