@@ -1,4 +1,4 @@
-name: Build and Deploy Hexo to gh-pages
+name: Build and Deploy Hexo to gh-pages and cf-pages
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 22.20.0
 
-      - name: Install dependencies & build site
+      - name: Install dependencies & build site (for GitHub Pages)
         run: |
           npm ci || npm install
           npx hexo clean
@@ -40,3 +40,20 @@ jobs:
           publish_branch: gh-pages
           force_orphan: true
           keep_files: false
+
+      # ✨ 新增：为 Cloudflare Pages 生成并推送 cf-pages 分支
+      - name: Build for Cloudflare Pages
+        run: |
+          npx hexo clean
+          npx hexo generate --config _config.yml,config_cloudflare.yml
+
+      - name: Deploy to cf-pages branch
+        run: |
+          cd public
+          git init
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git add .
+          git commit -m "Deploy to cf-pages"
+          git branch -M main
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" main:cf-pages
